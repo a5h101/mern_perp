@@ -1,17 +1,15 @@
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
-// const mongoose = require('mongoose');
 const app = express();
 
 app.use(express.json());
 app.use(cors());
 app.use(morgan('dev'));
-// app.use(mongoose());
 const Courses = require('./models/courses');
 
+//Get all course
 app.get('/courses', async (req, res) => {
-  // console.log(req.query);
   try {
     const kalvium = await Courses.find();
     res.status(200).json({
@@ -26,10 +24,11 @@ app.get('/courses', async (req, res) => {
   }
 });
 
-app.get('/courses/psup', async (req, res) => {
+//Get course by name
+app.get('/courses/:courseName', async (req, res) => {
   try {
-    console.log('psup');
-    const psup = await Courses.find({ course: 'psup' });
+    console.log(req.params.courseName);
+    const psup = await Courses.find({ course: req.params.courseName });
     res.status(200).json({
       psup,
     });
@@ -41,14 +40,14 @@ app.get('/courses/psup', async (req, res) => {
     });
   }
 });
-app.get('/courses/psup/rating', async (req, res) => {
-  // console.log(req.query);
+
+//Get course rating
+app.get('/courses/:courseName/rating', async (req, res) => {
   try {
-    console.log('psusp');
     const averageRating = await Courses.aggregate([
       {
         $match: {
-          course: 'psup',
+          course: req.params.courseName,
         },
       },
       {
@@ -65,15 +64,15 @@ app.get('/courses/psup/rating', async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    res.status(404).json({
+    res.status(401).json({
       status: 'fail',
       message: error,
     });
   }
 });
 
+//Poset new Course
 app.post('/courses', async (req, res) => {
-  console.log(req.body);
   try {
     const newCourse = await Courses.create(req.body);
     res.status(200).json({
@@ -88,21 +87,21 @@ app.post('/courses', async (req, res) => {
   }
 });
 
-app.post('/courses/bocs2/ratings', async (req, res) => {
-  console.log(req.body.ratings);
+//Add more rating
+app.post('/courses/:courseName', async (req, res) => {
+  console.log(req.query.rating, req.params.courseName);
   try {
-    const bocs2 = await Courses.findOne({ course: 'bocs2' });
+    const course = await Courses.findOne({ course: req.params.courseName });
     let newTotal =
-      bocs2.averageRating * bocs2.studentsVoted + Number(req.body.ratings);
-    let newAvg = newTotal / (bocs2.studentsVoted + 1);
-    let newStudents = bocs2.studentsVoted + 1;
+      course.averageRating * course.studentsVoted + Number(req.query.rating);
+    let newAvg = newTotal / (course.studentsVoted + 1);
+    let newStudents = course.studentsVoted + 1;
     await Courses.updateOne(
-      { course: 'bocs2' },
+      { course: req.params.courseName },
       { $set: { averageRating: newAvg, studentsVoted: newStudents } }
     );
-    // await bocs2.save();
     res.status(200).json({
-      bocs2,
+      course,
     });
   } catch (err) {
     console.log(err);
@@ -112,23 +111,26 @@ app.post('/courses/bocs2/ratings', async (req, res) => {
     });
   }
 });
-app.put('/courses/bocs2', async (req, res) => {
-  console.log(req.body);
+
+//reaplce old course doc with new
+app.put('/courses/:courseName', async (req, res) => {
   try {
-    Courses.findByIdAndUpdate(
-      { course: 'bocs2' },
-      { ...req.body },
-      { new: true }
+    const courseName = req.params.id;
+    const updates = { ...req.query };
+    const options = { new: true };
+    const updatedCourse = await Courses.findOneAndReplace(
+      courseName,
+      updates,
+      options
     );
-    res.status(200).json({
-      status: 'ok',
-    });
-  } catch (err) {
-    console.log(err);
-    res.status(404).json({
-      status: 'fail',
-      message: err,
-    });
+    if (!updatedCourse) {
+      return res.status(404).send({
+        message: 'fail',
+      });
+    }
+    res.status(201).send(updatedCourse);
+  } catch (error) {
+    res.status(400).send(error);
   }
 });
 
