@@ -13,6 +13,6 @@ mongoose
 
 const port = process.env.PORT;
 const host = process.env.LOCALHOST;
-app.listen(port, host, () => {
+app.listen(port, () => {
   console.log(`listening host ${host}/${port}...`);
 });
