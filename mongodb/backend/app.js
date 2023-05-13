@@ -28,9 +28,9 @@ app.get('/courses', async (req, res) => {
 app.get('/courses/:courseName', async (req, res) => {
   try {
     console.log(req.params.courseName);
-    const psup = await Courses.find({ course: req.params.courseName });
+    const course = await Courses.find({ course: req.params.courseName });
     res.status(200).json({
-      psup,
+      courses: course,
     });
   } catch (err) {
     console.log(err);
